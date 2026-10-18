@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f5f1">
+  <title>ClairPixel — Atelier d’image</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f5f1;
+      --ink: #19211d;
+      --muted: #727c76;
+      --line: #dce1da;
+      --white: #fff;
+      --green: #c9fa69;
+      --deep: #1c2923;
+      --mono: "DM Mono", monospace;
+      --sans: "Manrope", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--paper); color: var(--ink); font-family: var(--sans); }
+    button, select { font: inherit; }
+    button { color: inherit; }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 240px minmax(0, 1fr); }
+    aside { min-height: 100vh; padding: 28px 18px 20px; border-right: 1px solid var(--line); display: flex; flex-direction: column; background: #f8f9f6; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 2px 10px 34px; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--green); }
+    .brand-name { font-size: 16px; font-weight: 800; letter-spacing: 0; }
+    .brand-name span { font-weight: 500; }
+    .side-label, .eyebrow { font: 11px var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+    .side-label { padding: 0 10px 10px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; padding: 11px 12px; text-align: left; background: transparent; border-radius: 7px; font-size: 13px; color: #59635d; }
+    .nav-item.active { background: #e9eee7; color: var(--ink); font-weight: 700; }
+    .nav-icon { width: 18px; height: 18px; display: inline-grid; place-items: center; }
+    .side-bottom { margin-top: auto; padding: 18px 10px 0; border-top: 1px solid var(--line); }
+    .status-dot { width: 7px; height: 7px; display: inline-block; margin-right: 7px; border-radius: 50%; background: #d6a34e; vertical-align: 1px; }
+    .engine-status { font-size: 11px; line-height: 1.6; color: var(--muted); }
+    main { min-width: 0; }
+    .topbar { height: 70px; padding: 0 42px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+    .crumb { color: var(--muted); font-size: 12px; }
+    .crumb strong { color: var(--ink); font-weight: 600; }
+    .profile { display: flex; align-items: center; gap: 9px; color: #5f6962; font-size: 12px; }
+    .avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #e3e9df; color: #425046; font-weight: 700; }
+    .content { width: min(1160px, 100%); padding: 44px 42px 60px; margin: 0 auto; }
+    .heading { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 28px; }
+    h1 { margin: 8px 0 0; font-size: clamp(26px, 3vw, 36px); line-height: 1.14; letter-spacing: 0; font-weight: 700; }
+    .heading-note { max-width: 265px; margin: 0 0 2px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .studio { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 22px; align-items: start; }
+    .workspace { min-width: 0; }
+    .stage { position: relative; min-height: 470px; overflow: hidden; display: grid; place-items: center; border: 1px solid #d9dfd8; border-radius: 8px; background-color: #e9ece7; background-image: linear-gradient(45deg, #e0e4de 25%, transparent 25%), linear-gradient(-45deg, #e0e4de 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e0e4de 75%), linear-gradient(-45deg, transparent 75%, #e0e4de 75%); background-size: 22px 22px; background-position: 0 0, 0 11px, 11px -11px, -11px 0; }
+    .stage.has-media { background-image: none; background-color: #18211c; }
+    .stage img, .stage video { display: none; width: 100%; height: 100%; max-height: 600px; position: absolute; inset: 0; object-fit: contain; }
+    .stage.has-media img.visible, .stage.has-media video.visible { display: block; }
+    #originalPreview { z-index: 1; }
+    #imagePreview { z-index: 2; clip-path: inset(0 calc(100% - var(--compare-position, 50%)) 0 0); }
+    .stage.has-compare { cursor: ew-resize; touch-action: none; }
+    .stage.has-compare::before { content: ""; position: absolute; z-index: 4; top: 50%; left: var(--compare-position, 50%); width: 34px; height: 34px; transform: translate(-50%, -50%); border: 2px solid white; border-radius: 50%; background: #1c2923; box-shadow: 0 1px 8px #0008; pointer-events: none; }
+    .stage.has-compare::after { content: ""; position: absolute; z-index: 4; top: 0; bottom: 0; left: var(--compare-position, 50%); width: 2px; transform: translateX(-50%); background: white; box-shadow: 0 0 5px #0008; pointer-events: none; }
+    .compare-labels { position: absolute; z-index: 5; top: 13px; right: 13px; left: 13px; display: flex; justify-content: space-between; pointer-events: none; }
+    .compare-labels span { padding: 6px 8px; border: 1px solid #ffffff44; border-radius: 4px; background: #111a16bb; color: white; font: 10px var(--mono); text-transform: uppercase; }
+    .compare-control { min-height: 48px; display: grid; grid-template-columns: 58px minmax(0, 1fr) 58px; align-items: center; gap: 12px; padding: 0 4px; color: #59635d; font-size: 10px; }
+    .compare-control span:last-child { text-align: right; }
+    .compare-control input { width: 100%; accent-color: #43634b; }
+    .compare-labels[hidden], .compare-control[hidden], .change-summary[hidden] { display: none; }
+    .change-summary { display: flex; flex-direction: column; gap: 4px; padding: 11px 12px; border-left: 2px solid #9ac866; background: #edf2e8; color: #455247; font-size: 10px; line-height: 1.55; }
+    .change-summary strong { color: var(--ink); font-size: 11px; }
+    .stage-empty { position: relative; z-index: 1; width: min(290px, 85%); text-align: center; }
+    .upload-symbol { width: 54px; height: 54px; margin: 0 auto 17px; display: grid; place-items: center; border: 1px solid #c8d0c8; border-radius: 15px; background: rgba(255,255,255,.65); }
+    .stage-empty h2 { margin: 0 0 7px; font-size: 15px; }
+    .stage-empty p { margin: 0 0 18px; color: #6d7770; font-size: 12px; line-height: 1.6; }
+    .button-primary { min-height: 42px; padding: 0 15px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 6px; background: var(--deep); color: white; font-size: 12px; font-weight: 700; cursor: pointer; transition: transform .15s, background .15s; }
+    .button-primary:hover { background: #30443a; transform: translateY(-1px); }
+    .stage-meta { position: absolute; z-index: 2; right: 14px; bottom: 14px; left: 14px; display: none; justify-content: space-between; align-items: center; color: white; font: 10px var(--mono); text-shadow: 0 1px 4px #000; }
+    .stage.has-media .stage-meta { display: flex; }
+    .meta-pill { padding: 7px 9px; border: 1px solid #ffffff44; border-radius: 4px; background: #111a16aa; }
+    .stage.has-media .stage-empty { display: none; }
+    .filebar { min-height: 52px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 2px; border-bottom: 1px solid var(--line); }
+    .file-name { min-width: 0; overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .text-button { padding: 6px 0; border: 0; background: transparent; color: #39463e; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .text-button:disabled { color: #a8b0a9; cursor: default; }
+    .settings { padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: #fbfcf9; }
+    .settings h2 { margin: 0 0 4px; font-size: 14px; }
+    .settings-intro { margin: 0 0 22px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .field { margin: 0 0 19px; }
+    .field-label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 11px; font-weight: 700; }
+    .field-label span:last-child { color: var(--muted); font: 10px var(--mono); font-weight: 400; }
+    .format-hint { margin: -11px 0 18px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    select { width: 100%; height: 40px; padding: 0 11px; border: 1px solid var(--line); border-radius: 5px; background: white; color: var(--ink); font-size: 12px; }
+    .preserve { display: flex; align-items: flex-start; gap: 9px; margin: 7px 0 20px; color: #59645d; font-size: 11px; line-height: 1.55; }
+    .preserve input { accent-color: #40584a; margin: 2px 0 0; }
+    .notice { padding: 12px; border-left: 2px solid #d6a34e; background: #f5f2e9; color: #655d4b; font-size: 10px; line-height: 1.6; }
+    .export { width: 100%; min-height: 44px; margin-top: 15px; border: 0; border-radius: 6px; background: #dfe4dc; color: #929b93; font-size: 12px; font-weight: 700; cursor: not-allowed; transition: background .15s, transform .15s; }
+    .export:not(:disabled) { background: var(--green); color: var(--ink); cursor: pointer; }
+    .export:not(:disabled):hover { background: #b9ed57; transform: translateY(-1px); }
+    .export:focus-visible { outline: 2px solid #40584a; outline-offset: 3px; }
+    .footnote { margin: 11px 0 0; color: #8a938b; font-size: 10px; line-height: 1.5; text-align: center; }
+    #fileInput { display: none; }
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: 68px minmax(0, 1fr); }
+      aside { align-items: center; padding-inline: 9px; }
+      .brand { padding: 0 0 32px; }
+      .brand-name, .side-label, .nav-text, .engine-status { display: none; }
+      .nav-item { justify-content: center; padding: 12px 0; }
+      .side-bottom { width: 100%; text-align: center; padding: 15px 0 0; }
+      .topbar { padding: 0 25px; }
+      .content { padding: 34px 25px 48px; }
+      .studio { grid-template-columns: minmax(0, 1fr) 270px; gap: 15px; }
+      .stage { min-height: 420px; }
+    }
+    @media (max-width: 680px) {
+      .shell { display: block; padding-bottom: 63px; }
+      aside { position: fixed; z-index: 5; inset: auto 0 0; width: 100%; height: 62px; min-height: 0; padding: 0 18px; border: 0; border-top: 1px solid var(--line); flex-direction: row; justify-content: space-around; background: #f8f9f6; }
+      .brand, .side-label, .side-bottom { display: none; }
+      .nav-item { width: 50px; height: 50px; }
+      .topbar { height: 58px; padding: 0 18px; }
+      .profile > span:last-child { display: none; }
+      .content { padding: 29px 17px 32px; }
+      .heading { display: block; margin-bottom: 21px; }
+      h1 { font-size: 28px; }
+      .heading-note { margin-top: 11px; max-width: 360px; }
+      .studio { grid-template-columns: 1fr; }
+      .stage { min-height: min(65vh, 440px); }
+      .settings { padding: 17px; }
+      .stage-meta { right: 9px; bottom: 9px; left: 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside aria-label="Navigation principale">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 17.5 9.2 12l3.4 3.4 2.5-2.6L20 18H4Z" stroke="#19211d" stroke-width="1.7" stroke-linejoin="round"/><circle cx="16.5" cy="7.5" r="2" stroke="#19211d" stroke-width="1.7"/><path d="M3 4h18v16H3z" stroke="#19211d" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
+        <div class="brand-name">clair<span>pixel</span></div>
+      </div>
+      <div class="side-label">Atelier</div>
+      <button class="nav-item active" type="button" aria-current="page"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v14H4zM8 9h.01M6 16l4-4 3 3 2-2 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-text">Améliorer</span></button>
+      <button class="nav-item" type="button" aria-label="Historique"><span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5M3.5 4.5v4h4M12 7v5l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-text">Historique</span></button>
+      <div class="side-bottom"><div class="engine-status"><span class="status-dot"></span>Moteur en attente<br>Traitement non connecté</div></div>
+    </aside>
+
+    <main>
+      <header class="topbar"><div class="crumb">Espace de travail <span aria-hidden="true">/</span> <strong>Nouvelle amélioration</strong></div><div class="profile"><span class="avatar">C</span><span>Compte invité</span></div></header>
+      <div class="content">
+        <div class="heading"><div><div class="eyebrow">Atelier d’image <span aria-hidden="true">·</span> 01</div><h1>Retrouvez le détail.</h1></div><p class="heading-note">Préparez vos réglages et visualisez votre fichier avant traitement.</p></div>
+        <section class="studio" aria-label="Atelier d’amélioration média">
+          <div class="workspace">
+            <div class="stage" id="stage" aria-label="Aperçu du média sélectionné">
+              <div class="stage-empty" id="emptyState">
+                <div class="upload-symbol" aria-hidden="true"><svg width="23" height="23" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5h14v-5" stroke="#36453b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <h2>Votre image, en mieux.</h2>
+                <p>Ajoutez une photo ou une vidéo pour préparer votre projet.</p>
+                <button class="button-primary" id="chooseButton" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Importer un fichier</button>
+              </div>
+              <img id="originalPreview" alt="Photo originale, avant traitement">
+              <img id="imagePreview" alt="Aperçu de la photo importée">
+              <video id="videoPreview" controls playsinline aria-label="Aperçu de la vidéo importée"></video>
+              <div class="compare-labels" id="compareLabels" hidden><span>Originale</span><span>Traitée</span></div>
+              <div class="stage-meta"><span class="meta-pill" id="mediaType">PHOTO</span><span class="meta-pill" id="mediaDimensions">APERÇU ORIGINAL</span></div>
+            </div>
+            <div class="compare-control" id="compareControl" hidden><span>Originale</span><input id="compareSlider" type="range" min="0" max="100" value="50" aria-label="Comparer la photo originale et la photo traitée"><span>Traitée</span></div>
+            <div class="change-summary" id="changeSummary" hidden><strong>Correction automatique sur toute l’image</strong><span id="changeDetails">Analyse de la lumière et des couleurs…</span><span>Le sujet et le cadrage restent inchangés.</span></div>
+            <div class="filebar"><span class="file-name" id="fileName">Aucun fichier importé</span><button class="text-button" id="replaceButton" type="button" disabled>Remplacer le fichier</button></div>
+            <input id="fileInput" type="file" accept="image/*,video/*">
+          </div>
+          <section class="settings" aria-labelledby="settingsTitle">
+            <h2 id="settingsTitle">Réglages de sortie</h2>
+            <p class="settings-intro">Choisissez la définition souhaitée pour votre export.</p>
+            <div class="field"><label class="field-label" for="resolution">Résolution <span>01</span></label><select id="resolution"><option value="source">Conserver l’originale</option><option value="1080">Full HD · 1080p</option><option value="2160" selected>Ultra HD · 4K</option></select></div>
+            <div class="field"><div class="field-label"><span>Format de sortie</span><span>02</span></div><select id="format"><option value="auto">Automatique</option><option value="jpeg">JPEG</option><option value="png">PNG</option></select></div>
+            <p class="format-hint" id="formatHint">Conserve le PNG si la source est un PNG; sinon exporte en JPEG.</p>
+            <label class="preserve"><input type="checkbox" checked><span>Préserver le cadrage et le contenu d’origine</span></label>
+            <div class="notice"><strong>Traitement local.</strong> Photo et vidéo sont redimensionnées avec un léger rehaussement du contraste et des couleurs. Ce n’est pas une restauration par IA; l’export vidéo est sans son.</div>
+            <button class="export" id="exportButton" type="button" disabled aria-disabled="true">Télécharger le résultat</button>
+            <p class="footnote" id="processStatus">Importez une photo pour lancer le traitement.</p>
+          </section>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const chooseButton = document.getElementById('chooseButton');
+    const replaceButton = document.getElementById('replaceButton');
+    const stage = document.getElementById('stage');
+    const imagePreview = document.getElementById('imagePreview');
+    const originalPreview = document.getElementById('originalPreview');
+    const videoPreview = document.getElementById('videoPreview');
+    const compareControl = document.getElementById('compareControl');
+    const compareLabels = document.getElementById('compareLabels');
+    const compareSlider = document.getElementById('compareSlider');
+    const changeSummary = document.getElementById('changeSummary');
+    const fileName = document.getElementById('fileName');
+    const mediaType = document.getElementById('mediaType');
+    const mediaDimensions = document.getElementById('mediaDimensions');
+    let activeObjectUrl = null;
+    let processedObjectUrl = null;
+    let currentFile = null;
+
+    function openPicker() { fileInput.click(); }
+    chooseButton.addEventListener('click', openPicker);
+    replaceButton.addEventListener('click', openPicker);
+    const exportButton = document.getElementById('exportButton');
+    const processStatus = document.getElementById('processStatus');
+    const resolution = document.getElementById('resolution');
+    const format = document.getElementById('format');
+    const formatHint = document.getElementById('formatHint');
+    const changeDetails = document.getElementById('changeDetails');
+    let processVersion = 0;
+    let comparePointerId = null;
+
+    function targetDimensions(width, height) {
+      if (resolution.value === 'source') return { width, height };
+      const maxLongEdge = resolution.value === '2160' ? 3840 : 1920;
+      let maxWidth = maxLongEdge;
+      let maxHeight = maxLongEdge === 3840 ? 2160 : 1080;
+      if (height > width) [maxWidth, maxHeight] = [maxHeight, maxWidth];
+      const scale = Math.min(maxWidth / width, maxHeight / height);
+      return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
+    }
+
+    function analyzeImageTone(image) {
+      const sampleScale = Math.min(1, 256 / Math.max(image.width, image.height));
+      const sampleWidth = Math.max(1, Math.round(image.width * sampleScale));
+      const sampleHeight = Math.max(1, Math.round(image.height * sampleScale));
+      const sample = document.createElement('canvas');
+      sample.width = sampleWidth;
+      sample.height = sampleHeight;
+      const sampleContext = sample.getContext('2d', { willReadFrequently: true });
+      sampleContext.drawImage(image, 0, 0, sampleWidth, sampleHeight);
+      const pixels = sampleContext.getImageData(0, 0, sampleWidth, sampleHeight).data;
+      const histogram = new Uint32Array(256);
+      let count = 0;
+      let chromaTotal = 0;
+      for (let index = 0; index < pixels.length; index += 4) {
+        if (pixels[index + 3] < 16) continue;
+        const red = pixels[index];
+        const green = pixels[index + 1];
+        const blue = pixels[index + 2];
+        const luminance = Math.round(red * 0.2126 + green * 0.7152 + blue * 0.0722);
+        histogram[luminance]++;
+        chromaTotal += (Math.max(red, green, blue) - Math.min(red, green, blue)) / 255;
+        count++;
+      }
+      if (!count) return { brightness: 1, contrast: 1, saturation: 1 };
+      function percentile(ratio) {
+        const target = Math.floor((count - 1) * ratio);
+        let accumulated = 0;
+        for (let value = 0; value < histogram.length; value++) {
+          accumulated += histogram[value];
+          if (accumulated > target) return value / 255;
+        }
+        return 1;
+      }
+      const low = percentile(0.02);
+      const high = percentile(0.98);
+      const median = percentile(0.5);
+      const colorfulness = chromaTotal / count;
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+      return {
+        brightness: clamp(1 + (0.48 - median) * 0.45, 0.9, 1.1),
+        contrast: clamp(0.86 / Math.max(0.05, high - low), 0.92, 1.16),
+        saturation: clamp(1.02 + (0.18 - colorfulness) * 0.22, 1, 1.06)
+      };
+    }
+
+    function formatAdjustment(name, factor) {
+      const percent = Math.round((factor - 1) * 100);
+      return `${name} ${percent > 0 ? '+' : ''}${percent}%`;
+    }
+
+    function processCurrentFile() {
+      if (!currentFile) return;
+      if (currentFile.type.startsWith('video/')) processVideo(currentFile);
+      else processPhoto(currentFile);
+    }
+
+    async function processPhoto(file) {
+      if (!file) return;
+      if (file.type.startsWith('video/')) {
+        processStatus.textContent = 'Vidéo chargée. Le traitement vidéo n’est pas encore disponible.';
+        exportButton.disabled = true;
+        exportButton.setAttribute('aria-disabled', 'true');
+        exportButton.textContent = 'Traitement vidéo indisponible';
+        return;
+      }
+      const version = ++processVersion;
+      exportButton.disabled = true;
+      stage.classList.remove('has-compare');
+      compareControl.hidden = true;
+      compareLabels.hidden = true;
+      changeSummary.hidden = true;
+      processStatus.textContent = 'Lecture de la photo…';
+      try {
+        const image = await createImageBitmap(file);
+        processStatus.textContent = 'Mise à l’échelle et retouche…';
+        const tone = analyzeImageTone(image);
+        const { width, height } = targetDimensions(image.width, image.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        const mimeType = format.value === 'png' || (format.value === 'auto' && file.type === 'image/png') ? 'image/png' : 'image/jpeg';
+        if (mimeType === 'image/jpeg') {
+          context.fillStyle = '#fff';
+          context.fillRect(0, 0, width, height);
+        }
+        context.filter = `brightness(${tone.brightness}) contrast(${tone.contrast}) saturate(${tone.saturation})`;
+        context.drawImage(image, 0, 0, width, height);
+        image.close();
+        processStatus.textContent = 'Préparation du fichier à télécharger…';
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, mimeType, 0.94));
+        if (version !== processVersion || !blob) return;
+        if (processedObjectUrl) URL.revokeObjectURL(processedObjectUrl);
+        processedObjectUrl = URL.createObjectURL(blob);
+        originalPreview.src = activeObjectUrl;
+        originalPreview.classList.add('visible');
+        imagePreview.src = processedObjectUrl;
+        compareSlider.value = '50';
+        stage.style.setProperty('--compare-position', '50%');
+        stage.classList.add('has-compare');
+        compareControl.hidden = false;
+        compareLabels.hidden = false;
+        changeSummary.hidden = false;
+        changeDetails.textContent = `${formatAdjustment('Luminosité', tone.brightness)}, ${formatAdjustment('contraste', tone.contrast)} et ${formatAdjustment('saturation', tone.saturation)}; redimensionnement haute qualité en ${width} × ${height}.`;
+        mediaDimensions.textContent = `${width} × ${height} · TRAITÉ`;
+        exportButton.disabled = false;
+        exportButton.setAttribute('aria-disabled', 'false');
+        exportButton.textContent = `Télécharger ${width} × ${height}`;
+        processStatus.textContent = 'Traitement terminé. Le résultat est prêt à télécharger.';
+        exportButton.onclick = () => {
+          const link = document.createElement('a');
+          const extension = blob.type === 'image/png' ? 'png' : 'jpg';
+          link.href = processedObjectUrl;
+          link.download = `${file.name.replace(/\.[^.]+$/, '')}-clairpixel.${extension}`;
+          link.click();
+        };
+      } catch {
+        if (version === processVersion) processStatus.textContent = 'Le navigateur n’a pas pu traiter cette photo.';
+      }
+    }
+
+    async function processVideo(file) {
+      const version = ++processVersion;
+      exportButton.disabled = true;
+      exportButton.setAttribute('aria-disabled', 'true');
+      processStatus.textContent = 'Préparation de la vidéo…';
+      try {
+        if (!HTMLCanvasElement.prototype.captureStream || !window.MediaRecorder) {
+          throw new Error('Ce navigateur ne prend pas en charge le traitement vidéo local.');
+        }
+        const video = document.createElement('video');
+        video.muted = true;
+        video.playsInline = true;
+        video.src = activeObjectUrl;
+        await new Promise((resolve, reject) => {
+          video.onloadedmetadata = resolve;
+          video.onerror = () => reject(new Error('Impossible de lire cette vidéo.'));
+        });
+        const { width, height } = targetDimensions(video.videoWidth, video.videoHeight);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
+        context.filter = 'contrast(1.04) saturate(1.02)';
+        const stream = canvas.captureStream(30);
+        const mimeType = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((type) => MediaRecorder.isTypeSupported(type));
+        const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+        const chunks = [];
+        recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
+        const recorded = new Promise((resolve, reject) => {
+          recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType || 'video/webm' }));
+          recorder.onerror = () => reject(new Error('L’enregistrement vidéo a échoué.'));
+        });
+        processStatus.textContent = 'Traitement vidéo en temps réel…';
+        recorder.start(250);
+        await video.play();
+        while (!video.ended && version === processVersion) {
+          context.drawImage(video, 0, 0, width, height);
+          await new Promise(requestAnimationFrame);
+        }
+        if (recorder.state !== 'inactive') recorder.stop();
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = await recorded;
+        video.pause();
+        if (version !== processVersion) return;
+        if (processedObjectUrl) URL.revokeObjectURL(processedObjectUrl);
+        processedObjectUrl = URL.createObjectURL(blob);
+        videoPreview.onloadedmetadata = null;
+        videoPreview.onerror = () => {
+          processStatus.textContent = 'Vidéo traitée et téléchargeable, mais cet aperçu WebM n’est pas lisible dans ce navigateur.';
+        };
+        videoPreview.src = processedObjectUrl;
+        mediaDimensions.textContent = `${width} × ${height} · TRAITÉ`;
+        exportButton.disabled = false;
+        exportButton.setAttribute('aria-disabled', 'false');
+        exportButton.textContent = 'Télécharger la vidéo WebM';
+        exportButton.onclick = () => {
+          const link = document.createElement('a');
+          link.href = processedObjectUrl;
+          link.download = `${file.name.replace(/\.[^.]+$/, '')}-clairpixel.webm`;
+          link.click();
+        };
+        processStatus.textContent = 'Traitement terminé. Export WebM prêt, sans piste audio.';
+      } catch (error) {
+        if (version === processVersion) processStatus.textContent = error.message || 'Le navigateur n’a pas pu traiter cette vidéo.';
+      }
+    }
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      currentFile = file;
+      processVersion++;
+      if (processedObjectUrl) URL.revokeObjectURL(processedObjectUrl);
+      processedObjectUrl = null;
+      if (activeObjectUrl) URL.revokeObjectURL(activeObjectUrl);
+      activeObjectUrl = URL.createObjectURL(file);
+      const isVideo = file.type.startsWith('video/');
+      imagePreview.onload = null;
+      originalPreview.classList.remove('visible');
+      stage.classList.remove('has-compare');
+      compareControl.hidden = true;
+      compareLabels.hidden = true;
+      changeSummary.hidden = true;
+      imagePreview.classList.remove('visible');
+      videoPreview.classList.remove('visible');
+      videoPreview.pause();
+      if (isVideo) {
+        videoPreview.src = activeObjectUrl;
+        videoPreview.classList.add('visible');
+        mediaType.textContent = 'VIDÉO';
+        processStatus.textContent = 'Lecture des métadonnées vidéo…';
+        videoPreview.onerror = () => {
+          processStatus.textContent = 'Format vidéo non pris en charge ici. Essayez un MP4 H.264.';
+          exportButton.disabled = true;
+          exportButton.setAttribute('aria-disabled', 'true');
+        };
+        videoPreview.onloadedmetadata = () => {
+          videoPreview.onerror = null;
+          mediaDimensions.textContent = `${videoPreview.videoWidth} × ${videoPreview.videoHeight}`;
+          processVideo(currentFile);
+        };
+      } else {
+        imagePreview.src = activeObjectUrl;
+        imagePreview.classList.add('visible');
+        mediaType.textContent = 'PHOTO';
+        imagePreview.onload = () => {
+          imagePreview.onload = null;
+          mediaDimensions.textContent = `${imagePreview.naturalWidth} × ${imagePreview.naturalHeight}`;
+          processPhoto(currentFile);
+        };
+      }
+      stage.classList.add('has-media');
+      fileName.textContent = file.name;
+      replaceButton.disabled = false;
+    });
+    resolution.addEventListener('change', processCurrentFile);
+    compareSlider.addEventListener('input', () => {
+      stage.style.setProperty('--compare-position', `${compareSlider.value}%`);
+    });
+    function updateComparisonFromPointer(event) {
+      const bounds = stage.getBoundingClientRect();
+      const position = Math.min(100, Math.max(0, ((event.clientX - bounds.left) / bounds.width) * 100));
+      compareSlider.value = String(Math.round(position));
+      stage.style.setProperty('--compare-position', `${position}%`);
+    }
+    stage.addEventListener('pointerdown', (event) => {
+      if (!stage.classList.contains('has-compare')) return;
+      comparePointerId = event.pointerId;
+      stage.setPointerCapture(event.pointerId);
+      updateComparisonFromPointer(event);
+    });
+    stage.addEventListener('pointermove', (event) => {
+      if (event.pointerId === comparePointerId) updateComparisonFromPointer(event);
+    });
+    function stopComparisonDrag(event) {
+      if (event.pointerId === comparePointerId) comparePointerId = null;
+    }
+    stage.addEventListener('pointerup', stopComparisonDrag);
+    stage.addEventListener('pointercancel', stopComparisonDrag);
+    format.addEventListener('change', () => {
+      const hints = {
+        auto: 'Conserve le PNG si la source est un PNG; sinon exporte en JPEG.',
+        jpeg: 'Fichier plus léger; les zones transparentes deviennent blanches.',
+        png: 'Format sans perte; conserve les zones transparentes.'
+      };
+      formatHint.textContent = hints[format.value];
+      processCurrentFile();
+    });
+    window.addEventListener('beforeunload', () => {
+      if (activeObjectUrl) URL.revokeObjectURL(activeObjectUrl);
+      if (processedObjectUrl) URL.revokeObjectURL(processedObjectUrl);
+    });
+  </script>
+</body>
+</html>
